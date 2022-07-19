@@ -321,5 +321,5 @@ train_final$med<-land[,1]
 train_med<-filter(train_final,med==TRUE)
 
 leaflet() %>% addTiles()  %>% 
-  addCircleMarkers(data=train_final, col="blue")%>% 
-  addPolygons(data=med.poly[14,])
+  addCircleMarkers(data=train_med, col="blue")%>% 
+  addPolygons(data=pol_poblad)
