@@ -687,3 +687,13 @@ table(is.na(train_med$price))
 
 save(test_chapi,train_chapi,test_med,train_med, file = "data_pred.RData")
 load("stuff.RData")
+
+train_chapi$chapi<-NULL
+train_chapi$med<-NULL
+train_med$chapi<-NULL
+train_med$med<-NULL
+train_med$surface_new_3<-NULL
+train<-rbind(train_chapi,train_med)
+test_med$surface_new_3<-NULL
+test<-rbind(test_chapi,test_med)
+
