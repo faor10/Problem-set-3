@@ -22,12 +22,12 @@ test<-readRDS(here(path,"stores/test.Rds"))
 
 train <- train %>%
   mutate_at(.vars = c(
-    "property_type","operation_type"),
+    "property_type","operation_type","l3"),
     .funs = factor)
 
 test <- test %>%
   mutate_at(.vars = c(
-    "property_type","operation_type"),
+    "property_type","operation_type","l3"),
     .funs = factor)
 
 
