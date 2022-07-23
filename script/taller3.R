@@ -384,8 +384,13 @@ mz_med<-st_read(here(path,"05_ANTIOQUIA/URBANO/MGN_URB_MANZANA.shp"))
 poblado = getbb(place_name = "Comuna 14 - El Poblado, Medellín",
                 featuretype = "boundary:administrative",
                 format_out = "sf_polygon") 
-
+sf_use_s2(FALSE)
 mz_pob = mz_med[poblado,]
+
+
+
+leaflet() %>% addTiles()%>%addCircleMarkers(data=train_med, col="red") %>% 
+  addPolygons(data=poblado) 
 
 
 ##Train Poblado muy pocas observaciones, se realiza con todo Medellín
