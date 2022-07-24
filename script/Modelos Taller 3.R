@@ -39,6 +39,15 @@ p_load(tidyr)
 p_load(tibble)
 p_load(gtsummary)
 
+train <- train %>%
+  mutate_at(.vars = c(
+    "property_type","operation_type","l3"),
+    .funs = factor)
+
+test <- test %>%
+  mutate_at(.vars = c(
+    "property_type","operation_type","l3"),
+    .funs = factor)
 
 #Modelo 1 Tradicional****************************************
 
@@ -50,6 +59,10 @@ model1 <- train(price ~ bedrooms + new_surface + min_dist_bus + min_dist_market 
                 # model to fit
                 data = train,
                 trControl = trainControl(method = "cv", number = 5), method = "lm")
+
+model1 
+549026780^2
+##MSE 3.014304e+17
 
 ##Coeficientes model 1 OLS
 df_coeficientes <- mod1$coefficients %>%
@@ -68,13 +81,9 @@ df_coeficientes %>%
 price_predict_train<-predict(model1,newdata=train)
 price_predict_train
 
-##MSE
-training_mse_OLS <- mean((price_predict_train - train$price)^2)
-paste("Error (mse) de entrenamiento:", training_mse_OLS)
-
 # Predicciones de test
 predicciones_test_ols <- predict(model1, newdata = test)
-predicciones_test_ols
+predicciones_ols<-as.data.frame(predicciones_test_ols)
 
 # MSE de test
 test_mse_ols <- mean((predicciones_test_ols - test$price)^2)
@@ -131,6 +140,7 @@ cv_error_ridge <- cv.glmnet(
 plot(cv_error_ridge)
 paste("Mejor valor de lambda encontrado:", cv_error_ridge$lambda.min)
 paste("Mejor valor de lambda encontrado + 1 desviaci?n est?ndar:", cv_error_ridge$lambda.1se)
+cv_error_ridge
 
 modelo2_ridge_lambdamin <- glmnet(
   x           = x_train,
@@ -164,9 +174,7 @@ df_coeficientes_ridge %>%
 predict_train_ridge <- predict(modelo2_ridge_lambdamin, newx = x_train)
 predict_train_ridge
 # MSE de entrenamiento
-training_mse_ridge <- mean((predict_train_ridge - train$price)^2)
-paste("Error (mse) de entrenamiento:", training_mse_ridge)
-
+#MSE 3.023e+17
 
 #Modelo 3 Lasso****************************************
 
@@ -212,6 +220,7 @@ cv_error_lasso <- cv.glmnet(
   standardize  = TRUE
 )
 
+cv_error_lasso
 plot(cv_error_lasso)
 paste("Mejor valor de lambda encontrado:", cv_error_lasso$lambda.min)
 paste("Mejor valor de lambda encontrado + 1 desviaci?n est?ndar:", cv_error_lasso$lambda.1se)
@@ -248,8 +257,7 @@ df_coeficientes_lasso %>%
 predict_train_lasso <- predict(model_lasso_min, newx = x_train)
 predict_train_lasso
 # MSE de entrenamiento
-training_mse_lasso <- mean((predict_train_lasso - train$price)^2)
-paste("Error (mse) de entrenamiento:", training_mse_lasso)
+##3.013e+17
 
 #Modelo 4--Elastic Net-----------------------------------------------------------
 el <- train(price ~ bedrooms + new_surface + min_dist_bus + min_dist_market + property_type + balcon_terr + l3, data = train, method = "glmnet",
@@ -257,6 +265,8 @@ el <- train(price ~ bedrooms + new_surface + min_dist_bus + min_dist_market + pr
 
 el ##The final values used for the model were alpha = 0.55 and lambda = 900321.
 ## RMSE= 548747488
+548747488^2
+##MSE=3.011238e+17
 
 # Model Prediction
 price_predict_el <- predict(el, train)
@@ -273,6 +283,7 @@ require("VGAM")
 set.seed(123)
 XS <- data.frame(train$bedrooms, train$l3, train$new_surface, train$min_dist_bus, train$min_dist_market, train$property_type, train$balcon_terr )
 YS <- train$price
+str(XS)
 folds = 5
 index <- split(1:1000, 1:folds)
 splt <- lapply(1:folds, function(ind) D[index[[ind]], ])
@@ -281,24 +292,39 @@ fitY <- SuperLearner(Y = YS, X = XS,
                      method = "method.NNLS", SL.library = c("SL.mean","SL.lm", "SL.ranger", "SL.glmnet"),
                      cvControl = list(V = folds))
 
-fitY ## Nos dice que el mejor mode es ranger_All RMSE: 1.612468e+17
+fitY ## Nos dice que el mejor mode es ranger_All MSE: 1.612468e+17
+
 
 # Now predict the outcome for all possible x
 yS <- predict(fitY, newdata = data.frame(XS),onlySL = T)$pred
 # Create a dataframe of all x and predicted SL responses
 Dl1 <- data.frame(XS, yS)
 
-##RMSE de todos los modelos realizados
+difer<-data.frame(yS,train$price)
+difer<-difer %>% mutate(resta=yS-train.price)
 
+##RMSE de todos los modelos realizados en el train
 #OLS
-training_mse_OLS ##3.010064e+17
+##MSE:3.014304e+17
 #Ridge
-training_mse_ridge ##3.020867e+17
+#MSE 3.023e+17
 #Lasso
-training_mse_lasso ##3.010205e+17
+##3.013e+17
 #Elastic Net
-##RMSE= 548747488
+#MSE=3.011238e+17
 #Superlearner
-#RMSE: 1.612468e+17
+#MSE:1.612468e+17
+
+str(XS)
+str(XS_test)
+
+XS_test <- data.frame(test$bedrooms, test$l3, test$new_surface, test$min_dist_bus, test$min_dist_market, test$property_type, test$balcon_terr )
+str(XS_test)
+
+# Now predict the outcome for all possible x
+price_test <- predict(fitY, newdata = data.frame(XS_test),onlySL = T)$pred
+# Create a dataframe of all x and predicted SL responses
+Dl1 <- data.frame(XS, price_test)
+
 
 
