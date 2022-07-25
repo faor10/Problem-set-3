@@ -49,6 +49,14 @@ test <- test %>%
     "property_type","operation_type","l3"),
     .funs = factor)
 
+#Analizamos la correlación de nuestras variables dependientes
+cor(train$bedrooms, train$new_surface)
+cor(train$bedrooms, train$min_dist_bus)
+cor(train$bedrooms, train$min_dist_market)
+cor(train$new_surface, train$min_dist_bus)
+cor(train$new_surface, train$min_dist_market)
+cor(train$min_dist_bus, train$min_dist_market)
+
 #Modelo 1 Tradicional****************************************
 
 mod1 <- lm(price ~ bedrooms + new_surface + min_dist_bus + min_dist_market + property_type + balcon_terr + l3, data = train)
@@ -77,22 +85,14 @@ df_coeficientes %>%
   theme_bw() +
   theme(axis.text.x = element_text(size = 5, angle = 45))
 
-##Predicciones training
-price_predict_train<-predict(model1,newdata=train)
-price_predict_train
-
 # Predicciones de test
 predicciones_test_ols <- predict(model1, newdata = test)
 predicciones_ols<-as.data.frame(predicciones_test_ols)
 
-# MSE de test
-test_mse_ols <- mean((predicciones_test_ols - test$price)^2)
-paste("Error (mse) de test:", test_mse_ols)
-
 
 #Modelo 2 Ridge Personas****************************************
 
-x_train <- model.matrix(price ~ bedrooms + new_surface + min_dist_bus + min_dist_market + property_type + balcon_terr + l3, data = train)[, -1]
+x_train <- model.matrix( ~ bedrooms + new_surface + min_dist_bus + min_dist_market + property_type + balcon_terr + l3, data = train)[, -1]
 y_train <- train$price
 
 #scale(x_train)
@@ -170,11 +170,12 @@ df_coeficientes_ridge %>%
   theme_bw() +
   theme(axis.text.x = element_text(size = 6, angle = 45))
 
-# Predicciones de entrenamiento
-predict_train_ridge <- predict(modelo2_ridge_lambdamin, newx = x_train)
-predict_train_ridge
-# MSE de entrenamiento
-#MSE 3.023e+17
+##Predicciones en test
+x.test <- model.matrix( ~ bedrooms + new_surface + min_dist_bus + min_dist_market + property_type + balcon_terr + l3, test)[, -1]
+predict_test_ridge <- predict(modelo2_ridge_lambdamin, newx = x.test)
+predict_test_ridge
+
+#MSE del ridge: 3.023e+17
 
 #Modelo 3 Lasso****************************************
 
@@ -253,11 +254,11 @@ df_coeficientes_lasso %>%
   theme_bw() +
   theme(axis.text.x = element_text(size = 6, angle = 45))
 
-# Predicciones de entrenamiento
-predict_train_lasso <- predict(model_lasso_min, newx = x_train)
+# Predicciones en train
+predict_train_lasso <- predict(model_lasso_min, newx = x.test)
 predict_train_lasso
 # MSE de entrenamiento
-##3.013e+17
+##3.014e+17
 
 #Modelo 4--Elastic Net-----------------------------------------------------------
 el <- train(price ~ bedrooms + new_surface + min_dist_bus + min_dist_market + property_type + balcon_terr + l3, data = train, method = "glmnet",
@@ -268,10 +269,14 @@ el ##The final values used for the model were alpha = 0.55 and lambda = 900321.
 548747488^2
 ##MSE=3.011238e+17
 
-# Model Prediction
-price_predict_el <- predict(el, train)
+# Model Prediction en test
+price_predict_el <- predict(el, test)
 price_predict_el
 
+library(randomForest)
+classifier = randomForest(x = train,
+                          y = train$price,
+                          ntree = 500, random_state = 0)
 
 #Modelo 5 Superlearners------------------------------------------------------------
 require("tidyverse")
@@ -282,11 +287,19 @@ require("VGAM")
 # set the seed for reproducibility
 set.seed(123)
 XS <- data.frame(train$bedrooms, train$l3, train$new_surface, train$min_dist_bus, train$min_dist_market, train$property_type, train$balcon_terr )
+XS<-rename(XS, bedrooms =train.bedrooms)
+XS<-rename(XS, l3 =train.l3)
+XS<-rename(XS, new_surface =train.new_surface)
+XS<-rename(XS, min_dist_bus =train.min_dist_bus)
+XS<-rename(XS, min_dist_market =train.min_dist_market)
+XS<-rename(XS, property_type =train.property_type)
+XS<-rename(XS, balcon_terr =train.balcon_terr)
+
 YS <- train$price
+
 str(XS)
 folds = 5
 index <- split(1:1000, 1:folds)
-splt <- lapply(1:folds, function(ind) D[index[[ind]], ])
 ##Aquí hacemos un SuperLearnes por medio de OLS, RF y Glmnet
 fitY <- SuperLearner(Y = YS, X = XS,
                      method = "method.NNLS", SL.library = c("SL.mean","SL.lm", "SL.ranger", "SL.glmnet"),
@@ -294,37 +307,49 @@ fitY <- SuperLearner(Y = YS, X = XS,
 
 fitY ## Nos dice que el mejor mode es ranger_All MSE: 1.612468e+17
 
-
 # Now predict the outcome for all possible x
 yS <- predict(fitY, newdata = data.frame(XS),onlySL = T)$pred
 # Create a dataframe of all x and predicted SL responses
 Dl1 <- data.frame(XS, yS)
 
-difer<-data.frame(yS,train$price)
-difer<-difer %>% mutate(resta=yS-train.price)
 
-##RMSE de todos los modelos realizados en el train
-#OLS
-##MSE:3.014304e+17
-#Ridge
-#MSE 3.023e+17
-#Lasso
-##3.013e+17
-#Elastic Net
-#MSE=3.011238e+17
-#Superlearner
-#MSE:1.612468e+17
+#RMSE de todos los modelos realizados en el train, esto nos dice que el de menor MSE
+#es el Superlearner
+#OLS MSE:3.014304e+17
+#Ridge MSE 3.023e+17
+#Lasso 3.014e+17
+#Elastic Net MSE=3.011238e+17
+#Superlearner MSE:1.612468e+17
 
-str(XS)
-str(XS_test)
-
+XS
 XS_test <- data.frame(test$bedrooms, test$l3, test$new_surface, test$min_dist_bus, test$min_dist_market, test$property_type, test$balcon_terr )
+XS_test<-rename(XS_test, bedrooms =test.bedrooms)
+XS_test<-rename(XS_test, l3 =test.l3)
+XS_test<-rename(XS_test, new_surface =test.new_surface)
+XS_test<-rename(XS_test, min_dist_bus =test.min_dist_bus)
+XS_test<-rename(XS_test, min_dist_market =test.min_dist_market)
+XS_test<-rename(XS_test, property_type =test.property_type)
+XS_test<-rename(XS_test, balcon_terr =test.balcon_terr)
+
 str(XS_test)
 
 # Now predict the outcome for all possible x
 price_test <- predict(fitY, newdata = data.frame(XS_test),onlySL = T)$pred
 # Create a dataframe of all x and predicted SL responses
-Dl1 <- data.frame(XS, price_test)
+Dl1 <- data.frame(XS_test, price_test)
+
+#Estadisticas descriptivas del precio predicho
+summary(Dl1$price_test)
+
+
+#Diagrama de bigotes
+bwplot(price_test ~ l3 , data = Dl1)
+
+#Submission file
+submission<-data.frame(test$property_id,Dl1$price_test)
+
+
+
 
 
 
