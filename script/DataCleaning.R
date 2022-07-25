@@ -1,3 +1,7 @@
+##En este script se presenta la limpieza y el tratamiento de datos realizado para el PS3.
+##Se presenta el uso de datos espaciales para determinar la superficie de apartamentos que no cuentan con esta info.
+##Se presenta el uso de datos espaciales para determinar la distancia minima a las estaciones de bus y supermercados.
+##Se presenta el uso de texto para determinar la superficie de apartamentos que no cuentan con esta info.
 ## Llamar pacman (contiene la función p_load)
 rm(list=ls())
 require(pacman) 
@@ -18,7 +22,8 @@ path = here('')
 train<-readRDS(here(path,"stores/train.Rds"))
 test<-readRDS(here(path,"stores/test.Rds"))
 
-#Limpieza de datos
+#Limpieza de datos******************
+#Conversion a factores
 
 train <- train %>%
   mutate_at(.vars = c(
@@ -30,7 +35,7 @@ test <- test %>%
     "property_type","operation_type","l3"),
     .funs = factor)
 
-
+##Conversion a datos espaciales sf
 train<-train %>% mutate(latp=lat,longp=lon)
 train<-st_as_sf(train,coords=c('longp','latp'),crs="WGS84")
 test<-test %>% mutate(latp=lat,longp=lon)
@@ -50,6 +55,7 @@ point = geocode_OSM(paste(train$lat[1]," , ",train$lon[1]), as.sf=T)
 leaflet() %>% addTiles() %>% addCircles(data=point)
 leaflet() %>% addTiles() %>% addCircles(data=train_bog)
 
+##Se realizan las prediccion para encontrar la distancia minima a una estación de bus y supermercado
 ## objeto osm buses
 osm = opq(bbox = getbb("Bogotá Colombia")) %>%
   add_osm_feature(key="amenity" , value="bus_station") 
@@ -105,6 +111,7 @@ leaflet() %>% addTiles() %>%
 
 
 ##Para Medellín------------------------------------
+##Se realizan las prediccion para encontrar la distancia minima a una estación de bus y supermercado
 ## objeto osm buses
 osm = opq(bbox = getbb("Medellín Colombia")) %>%
   add_osm_feature(key="amenity" , value="bus_station") 
@@ -161,7 +168,7 @@ train_final<-rbind(train_bog,train_med)
 
 ##Tratamiento de la base de datos TEST
 ##Para Bogotá------------------------------------
-
+##Se realizan las prediccion para encontrar la distancia minima a una estación de bus y supermercado
 point = geocode_OSM(paste(test$lat[1]," , ",test$lon[1]), as.sf=T) 
 leaflet() %>% addTiles() %>% addCircles(data=point)
 leaflet() %>% addTiles() %>% addCircles(data=test_bog)
@@ -219,7 +226,9 @@ leaflet() %>% addTiles() %>%
   
   
   
-  ##Para Medellín------------------------------------
+ ##Para Medellín------------------------------------
+##Se realizan las prediccion para encontrar la distancia minima a una estación de bus y supermercado
+
 ## objeto osm buses
 osm = opq(bbox = getbb("Medellín Colombia")) %>%
   add_osm_feature(key="amenity" , value="bus_station") 
@@ -275,7 +284,8 @@ test_final<-rbind(test_bog,test_med)
 
 
 
-#Solo Chapinero
+#Solo para Chapinero 
+#Se realizan las prediccion de área de los aptos en base de los vecinos cercanos por manzanas y  en la descripción
 
 mz_bog<-st_read(here(path,"11_BOGOTA/URBANO/MGN_URB_MANZANA.shp"))
 
@@ -291,7 +301,7 @@ train_chapi = train_final[chapinero,]
 leaflet() %>% addTiles()%>%addCircleMarkers(data=train_chapi, col="red") %>% 
   addPolygons(data=mz_chapi) 
 
-## Prediccion de superficie a partir de la descripcion
+## Prediccion de superficie a partir de la descripcion de cada vivienda
 
 table(is.na(train_chapi$surface_total))
 table(is.na(train_chapi$surface_covered))
@@ -376,6 +386,7 @@ train_chapi <- train_chapi %>%
     .funs = factor)
 
 #Solo Medellín-----------------------
+#Se realizan las prediccion de área de los aptos en base de los vecinos cercanos por manzanas y  en la descripción
 train_med<-subset(train_final,l3 %in% c("Medellín"))
 
 mz_med<-st_read(here(path,"05_ANTIOQUIA/URBANO/MGN_URB_MANZANA.shp"))
@@ -474,9 +485,10 @@ train_med <- train_med %>%
     .funs = factor)
 
 
-##Predicciones para Test
+##Predicciones para Test*************************
 
 #Para Test Chapinero
+#Se realizan las prediccion de área de los aptos en base de los vecinos cercanos por manzanas y  en la descripción
 mz_bog<-st_read(here(path,"11_BOGOTA/URBANO/MGN_URB_MANZANA.shp"))
 
 
@@ -574,6 +586,7 @@ test_chapi <- test_chapi %>%
     .funs = factor)
 
 #Para Test Medellin
+#Se realizan las prediccion de área de los aptos en base de los vecinos cercanos por manzanas y  en la descripción
 
 test_med<-subset(test_final,l3 %in% c("Medellín"))
 
@@ -662,6 +675,8 @@ test_med = test_med %>%
 test_med = test_med %>% mutate(balcon_terr = ifelse(is.na(balcon)==T, 0 ,1))
 
 
+
+##Tratamiento final de datos
 test_med <- test_med %>%
   mutate_at(.vars = c(
     "balcon_terr"),
