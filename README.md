@@ -11,5 +11,5 @@ En este repositorio se presenta la solución del ProblemSet3 realizado por Carlo
 	- DataSummary: En este script se presentan las estadisticas descriptivas de las variables utilizadas en le PS3.
 	- DataCleaning: En este script se presenta el proceso para tratar los datos existen y predecir aquellos necesarios para nuestro modelo.
 	- Models: En este script se presenta el proceso para entrenar nuestros modelos y realizar las predicciones necesarias.
-- `stores`: Contiene la base de datos utilizados
+- `stores`: Contiene la base de datos utilizadas
 - `views`: Contiene todas las figuras y tablas utilizadas para el documento y análisis.
