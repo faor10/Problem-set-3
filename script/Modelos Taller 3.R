@@ -343,7 +343,7 @@ bwplot(price_test ~ l3 , data = Dl1)
 
 #Submission file
 submission<-data.frame(test$property_id,Dl1$price_test)
-write.csv(total,"C:/Users/francisco.alejandro1/Documents/BD/Taller 3/result_pred.csv", row.names = FALSE)
+write.csv(submission,"C:/Users/francisco.alejandro1/Documents/BD/Taller 3/result_pred.csv", row.names = FALSE)
 
 
 
